@@ -1,9 +1,9 @@
 # SM: Noting some things about the example
 
-from dryvr_plus_plus.example import CarAgent, NPCAgent, SimpleMap4
-from dryvr_plus_plus import Scenario
-from dryvr_plus_plus.plotter.plotter2D import *
-from dryvr_plus_plus.analysis import AnalysisTree
+from verse.agents.example_agent import CarAgent, NPCAgent
+from verse.map.example_map import SimpleMap4
+from verse import Scenario
+from verse.plotter.plotter2D import *
 
 from enum import Enum, auto
 import plotly.graph_objects as go

@@ -1,9 +1,4 @@
-from dryvr_plus_plus.example import FakeSensor2
-from dryvr_plus_plus.example import SimpleMap3
-from dryvr_plus_plus import Scenario
-from dryvr_plus_plus.example import SignAgent
-from dryvr_plus_plus.example import CarAgent
-from dryvr_plus_plus.plotter2D import *
+from verse.plotter2D import *
 
 from enum import Enum, auto
 import copy
@@ -76,14 +71,11 @@ def controller(ego: State, other: State, sign: State, lane_map):
     return output
 
 
-from dryvr_plus_plus.example.example_agent.car_agent import CarAgent
-from dryvr_plus_plus.example.example_agent.sign_agent import SignAgent
-from dryvr_plus_plus.scene_verifier.scenario.scenario import Scenario
-from dryvr_plus_plus.example.example_map.simple_map2 import SimpleMap3
-from dryvr_plus_plus.plotter.plotter2D import plot_reachtube_tree, plot_simulation_tree
-from dryvr_plus_plus.example.example_sensor.fake_sensor import FakeSensor2
-
-import matplotlib.pyplot as plt
+from verse.example.example_agent.car_agent import CarAgent
+from verse.example.example_agent.sign_agent import SignAgent
+from verse.scene_verifier.scenario.scenario import Scenario
+from verse.map.example_map.simple_map2 import SimpleMap3
+from verse.sensor.example_sensor.fake_sensor import FakeSensor2
 
 if __name__ == "__main__":
     import sys
