@@ -1,20 +1,18 @@
 from quadrotor_agent import quadrotor_agent
-from dryvr_plus_plus.scenario import Scenario
-from dryvr_plus_plus.example.example_map.simple_map2 import SimpleMap2, SimpleMap3, SimpleMap5, SimpleMap6
-from dryvr_plus_plus.plotter.plotter2D import *
-from dryvr_plus_plus.example.example_sensor.fake_sensor import FakeSensor2
-from plotter2D_old import plot_reachtube_tree
+from verse import Scenario
+from verse.plotter.plotter2D import *
  
 import plotly.graph_objects as go
 from enum import Enum, auto
-import os
 
-import json
-# from gen_json import write_json, read_json
+import matplotlib.pyplot as plt
+from verse.plotter.plotter2D_old import plot_reachtube_tree
 
 
 class AgentMode(Enum):
-    Default = auto()
+    Mode1 = auto() # mode of the uncertain mass (from 0.5m to 3.5m)
+    Mode2 = auto() # mode of the nominal mass
+    Mode3 = auto() # deterministic mass and 3 times of the nominal value
 
 
 if __name__ == "__main__":
@@ -30,57 +28,50 @@ if __name__ == "__main__":
     # modify mode list input
     # Step 2. change the initial codnitions (set for all 18 states)
     scenario.set_init(
+        [[     
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.37, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 2.63, 0.0]
+        ]],
         [
-        [     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.3],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 2.3]
-        ] # tuning knobs (initial condition uncertainty)
-            # [[1.25], [1.25]],
-            # [[1.25, 2.25], [1.25, 2.25]],
-            # [[1.55, 2.35], [1.55, 2.35]]
-        ],
-        [
-            tuple([AgentMode.Default]),
-            # tuple([AgentMode.Default]),
+            tuple([AgentMode.Mode1]),
         ]
     )
-    t_max = 10
-    traces = scenario.verify(t_max, 0.05)
-    traces.dump('output.json')
-    # path = os.path.abspath(__file__)
-    # path = path.replace('quadrotor_demo.py', 'output_geo_L1_TEST.json')
-    # write_json(traces, path)
+    t_max = 6
+    # traces = scenario.simulate(t_max, 0.01)
+    
+    # N = int(100*t_max + 1)
+    # t = np.linspace(0,t_max,N)
+    # x_des_array = []
+    # y_des_array = []
+    # z_des_array = []
 
-
-    N = 100*t_max + 1
-    t = np.linspace(0,t_max,N)
-    x_des_array = []
-    y_des_array = []
-    z_des_array = []
-
-    for t_step in t:
-        x_des_array.append(2*(1-np.cos(t_step)))
-        y_des_array.append(2*np.sin(t_step))
-        z_des_array.append(1.0 + np.sin(t_step))
-
+    # for t_step in t:
+    #     x_des_array.append(2*(1-np.cos(t_step)))
+    #     y_des_array.append(2*np.sin(t_step))
+    #     z_des_array.append(1.0 + np.sin(t_step))
     # fig = go.Figure()
-    # """use these lines for generating x-y (phase) plots"""
-    # fig = simulation_tree(traces, None, fig, 1, 2,
-    #                       'lines', 'trace', print_dim_list=[1,2])
+    # fig = simulation_tree(traces, None, fig, 0, 1, 'lines', 'trace', print_dim_list=[1,2])
     # fig.add_trace(go.Scatter(x=x_des_array, y=y_des_array,mode="lines",line=dict(color="#0000ff"))) 
     # fig.update_yaxes(scaleanchor = "x",scaleratio = 1,)
     # fig.update_xaxes(range=[-0.5, 4.5],constrain="domain")
     # fig.show()
 
+    traces = scenario.verify(t_max, 0.01)
+
+    fig = plot_reachtube_tree(traces.root, 'quad1', 0, [1])
+    plt.show()
+
     # fig = go.Figure()
-    import matplotlib.pyplot as plt 
-    """use these lines for generating x-y (phase) plots"""
-    fig = plot_reachtube_tree(traces.root, 'quad1', 1, [2])
+    # """use these lines for generating x-y (phase) plots"""
+    # fig = reachtube_tree(traces, None, fig, 1, 2,
+    #                         'lines', 'trace', print_dim_list=[1,2])
     # fig.add_trace(go.Scatter(x=x_des_array, y=y_des_array,mode="lines",line=dict(color="#0000ff"))) 
     # fig.update_yaxes(scaleanchor = "x",scaleratio = 1,)
     # fig.update_xaxes(range=[-0.5, 4.5],constrain="domain")
-    plt.show()
+    # fig.show()
 
-    """use these lines for generating x-t (time) plots"""
+    # """use these lines for generating x-t (time) plots"""
+    # fig = go.Figure()
     # fig = reachtube_tree(traces, None, fig, 0, 1,
     #                       'lines', 'trace', print_dim_list=[0,1])
     # fig.add_trace(go.Scatter(x=t, y=x_des_array,mode="lines",line=dict(color="#0000ff"))) 

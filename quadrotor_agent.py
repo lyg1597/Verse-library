@@ -6,18 +6,9 @@ import math
 from scipy.integrate import ode
 import numpy.linalg as la
 
-from dryvr_plus_plus.agents.base_agent import BaseAgent
-from dryvr_plus_plus.map.lane_map import LaneMap
-from dynamics_forward_euler import simulate
+from verse.agents import BaseAgent
+from verse.map import LaneMap
 
-class quadrotor_agent2(BaseAgent):
-    def __init__(self, id, code=None, file_name=None):
-        super().__init__(id, code, file_name)
-
-    def TC_simulate(self, mode: List[str], initialCondition, time_bound, time_step, lane_map: LaneMap = None) -> np.ndarray:
-        tmp = simulate(0, time_bound, time_step, initialCondition)
-        res = tmp[0]
-        return res
 
 class quadrotor_agent(BaseAgent):
     def __init__(self, id, code=None, file_name=None):
@@ -212,12 +203,67 @@ class quadrotor_agent(BaseAgent):
     #     x_dot = y
     #     y_dot = (1-x**2)*y - x
     #     return [x_dot, y_dot]
-    def dynamic(self, t, state, sim_mass):
+    def dynamic_mode1(self, t, state):
         x = state[:3] # position
         v = state[3:6] # velocity
         R = np.reshape(state[6:15], (3,3)) # rotation matrix from body to inertial
         W = state[15:18] # angular velocity
-        mass = state[18:]
+        mass = state[18:19]
+        cycle_time = state[19:]
+
+        xd = np.array([2*(1-np.cos(t)), 2*np.sin(t), 1.0 + np.sin(t)]) #desired position
+        xd_dot = np.array([2*np.sin(t), 2*np.cos(t), np.cos(t)]) #desired velocity
+        xd_ddot = np.array([2*np.cos(t), -2*np.sin(t), -np.sin(t)]) #desired acceleration
+        xd_dddot= np.array([-2*np.sin(t), -2*np.cos(t), -np.cos(t)]) #desired jerk
+        xd_ddddot = np.array([-2*np.cos(t), 2*np.sin(t), np.sin(t)]) #desired snap
+
+        b1d = np.array([1., 0., 0.]) #desired orientation vector (bint in Algorithm 1)
+        b1d_dot=np.array([0., 0., 0.]) #(bint_dot)
+        b1d_ddot=np.array([0., 0., 0.]) #(bint_ddot)
+
+        Rd = np.eye(3)
+        Wd = np.array([0.,0.,0.])
+        Wd_dot = np.array([0.,0.,0.])
+
+        f = np.array([0])
+        M = np.array([0,0,0])
+
+        d_in = (xd, xd_dot, xd_ddot, xd_dddot, xd_ddddot,
+                    b1d, b1d_dot, b1d_ddot, Rd, Wd, Wd_dot)
+        (f, M, Rd) = self.geometric_control(t, R, W, x, v, d_in) # computes the control commands
+        # print(f)
+        (f_L1, M_L1, sigma_m_hat) = self.L1_AC(R, W, x, v, f, M)
+        # print(f_L1)
+        # print('------------------------')
+        # print(M_L1)
+        """ Uncertain dynamics (use geometric + L1 adaptive control) """
+        # sigma_m_thrust = 1.4*math.sin(0.5*(t-5)) + 3.7*math.sin(0.75*(t-5))
+        # sigma_m_roll = 0.9*math.sin(0.75*(t-5))
+        # sigma_m_pitch = 0.85*(math.sin(t-5) + math.sin(0.5*(t-5)))
+        sigma_m_thrust = 0.0
+        sigma_m_roll = 0.0
+        sigma_m_pitch = 0.0 # tuning knobs (uncertainty/disturbances on the control channel)
+
+        f = f + sigma_m_thrust # L1 + geometric control 
+        M = M + np.array([sigma_m_roll, sigma_m_pitch, 0.0]) # L1 + geometric control
+
+        x_dot = v
+        v_dot = self.g*self.e3 - f/mass*R.dot(self.e3)
+        R_dot = np.dot(R, self.hat(W))
+        W_dot = np.dot(la.inv(self.J), M - np.cross(W, np.dot(self.J, W)))
+        mass_dot = np.zeros(1,)
+        time_dot = np.ones(1,)
+        X_dot = np.concatenate((x_dot, v_dot, R_dot.flatten(), W_dot, mass_dot, time_dot))
+
+        return X_dot
+    def dynamic_mode2(self, t, state):
+        x = state[:3] # position
+        v = state[3:6] # velocity
+        R = np.reshape(state[6:15], (3,3)) # rotation matrix from body to inertial
+        W = state[15:18] # angular velocity
+        mass = self.m
+        # print(mass)
+        cycle_time = state[19:]
 
         xd = np.array([2*(1-np.cos(t)), 2*np.sin(t), 1.0 + np.sin(t)]) #desired position
         xd_dot = np.array([2*np.sin(t), 2*np.cos(t), np.cos(t)]) #desired velocity
@@ -255,15 +301,74 @@ class quadrotor_agent(BaseAgent):
         sigma_m_roll = 0.0
         sigma_m_pitch = 0.0 # tuning knobs (uncertainty/disturbances on the control channel)
 
-        f = f_L1 + sigma_m_thrust # L1 + geometric control 
-        M = M_L1 + np.array([sigma_m_roll, sigma_m_pitch, 0.0]) # L1 + geometric control
+        f = f + sigma_m_thrust # L1 + geometric control 
+        M = M + np.array([sigma_m_roll, sigma_m_pitch, 0.0]) # L1 + geometric control
 
         x_dot = v
         v_dot = self.g*self.e3 - f/mass*R.dot(self.e3)
         R_dot = np.dot(R, self.hat(W))
         W_dot = np.dot(la.inv(self.J), M - np.cross(W, np.dot(self.J, W)))
         mass_dot = np.zeros(1,)
-        X_dot = np.concatenate((x_dot, v_dot, R_dot.flatten(), W_dot, mass_dot))
+        time_dot = np.ones(1,)
+        X_dot = np.concatenate((x_dot, v_dot, R_dot.flatten(), W_dot, mass_dot, time_dot))
+
+        return X_dot
+
+    def dynamic_mode3(self, t, state):
+        x = state[:3] # position
+        v = state[3:6] # velocity
+        R = np.reshape(state[6:15], (3,3)) # rotation matrix from body to inertial
+        W = state[15:18] # angular velocity
+        mass = self.m*3
+        # print(mass)
+        cycle_time = state[19:]
+
+        xd = np.array([2*(1-np.cos(t)), 2*np.sin(t), 1.0 + np.sin(t)]) #desired position
+        xd_dot = np.array([2*np.sin(t), 2*np.cos(t), np.cos(t)]) #desired velocity
+        xd_ddot = np.array([2*np.cos(t), -2*np.sin(t), -np.sin(t)]) #desired acceleration
+        xd_dddot= np.array([-2*np.sin(t), -2*np.cos(t), -np.cos(t)]) #desired jerk
+        xd_ddddot = np.array([-2*np.cos(t), 2*np.sin(t), np.sin(t)]) #desired snap
+
+        b1d = np.array([1., 0., 0.]) #desired orientation vector (bint in Algorithm 1)
+        b1d_dot=np.array([0., 0., 0.]) #(bint_dot)
+        b1d_ddot=np.array([0., 0., 0.]) #(bint_ddot)
+
+        Rd = np.eye(3)
+        Wd = np.array([0.,0.,0.])
+        Wd_dot = np.array([0.,0.,0.])
+
+        f = np.array([0])
+        M = np.array([0,0,0])
+
+        d_in = (xd, xd_dot, xd_ddot, xd_dddot, xd_ddddot,
+                    b1d, b1d_dot, b1d_ddot, Rd, Wd, Wd_dot)
+        (f, M, Rd) = self.geometric_control(t, R, W, x, v, d_in) # computes the control commands
+        # print(f)
+        (f_L1, M_L1, sigma_m_hat) = self.L1_AC(R, W, x, v, f, M)
+        # print(f_L1)
+        # print('------------------------')
+        # print(M_L1)
+ 
+
+
+        """ Uncertain dynamics (use geometric + L1 adaptive control) """
+        # sigma_m_thrust = 1.4*math.sin(0.5*(t-5)) + 3.7*math.sin(0.75*(t-5))
+        # sigma_m_roll = 0.9*math.sin(0.75*(t-5))
+        # sigma_m_pitch = 0.85*(math.sin(t-5) + math.sin(0.5*(t-5)))
+        sigma_m_thrust = 0.0
+        sigma_m_roll = 0.0
+        sigma_m_pitch = 0.0 # tuning knobs (uncertainty/disturbances on the control channel)
+
+        f = f + sigma_m_thrust # L1 + geometric control 
+        M = M + np.array([sigma_m_roll, sigma_m_pitch, 0.0]) # L1 + geometric control
+
+        x_dot = v
+        v_dot = self.g*self.e3 - f/mass*R.dot(self.e3)
+        R_dot = np.dot(R, self.hat(W))
+        W_dot = np.dot(la.inv(self.J), M - np.cross(W, np.dot(self.J, W)))
+        mass_dot = np.zeros(1,)
+        time_dot = np.ones(1,)
+        X_dot = np.concatenate((x_dot, v_dot, R_dot.flatten(), W_dot, mass_dot, time_dot))
 
         return X_dot
 
@@ -319,59 +424,37 @@ class quadrotor_agent(BaseAgent):
         Wc_dot= self.vee( Rc_dot.T.dot(Rc_dot) + Rc.T.dot(Rc_2dot))
         return (Rc, Wc, Wc_dot)
 
-
+    def action_handler(self, mode):
+        if mode == 'Mode1':
+            return ode(self.dynamic_mode1)
+        elif mode == 'Mode2':
+            return ode(self.dynamic_mode2)
+        elif mode == 'Mode3':
+            return ode(self.dynamic_mode3)
+        else:
+            raise ValueError
 
     def TC_simulate(self, mode: List[str], initialCondition, time_bound, time_step, lane_map: LaneMap = None) -> np.ndarray:
 
-        solver = ode(self.dynamic)
-        solver.set_integrator('dopri5', nsteps=2000).set_initial_value(initialCondition, 0).set_f_params(self.m*1.0) #tuning knobs (change of simulation mass)
-        dt = time_step
+        # print(mode[0])
+        time_bound = float(time_bound)
+        number_points = int(np.ceil(time_bound/time_step))
+        t = [round(i*time_step, 10) for i in range(0, number_points)]
 
-        # sim = []
-
-        # xd = []
-        # xd_dot = []
-        # sigma_m_inj = []
-        # sigma_m_hat = []
-        # Rd = []
-        # command_val = []
-        trace = [[0]+initialCondition]
-        while solver.successful() and solver.t < time_bound:
-            print(solver.t)
-            res = solver.integrate(solver.t+dt)
+        init = initialCondition
+        trace = [[0]+init]
+        for i in range(len(t)):
+            r = self.action_handler(mode[0])
+            r.set_integrator('dopri5', nsteps=2000).set_initial_value(init)
+            res: np.ndarray = r.integrate(r.t + time_step)
             init = res.flatten().tolist()
-            trace.append([solver.t] + init)
-            # sim.append(solver.y)
-            # xd.append(uav_t.xd)
-            # xd_dot.append(uav_t.xd_dot)
-            # sigma_m_inj.append(uav_t.sigma_m_inj)
-            # sigma_m_hat.append(uav_t.sigma_m_hat)
-            # Rd.append(uav_t.Rd)
-            # command_val.append(uav_t.command)
-
-            # time_bound = float(time_bound)
-            # number_points = int(np.ceil(time_bound/time_step))
-            # t = [round(i*time_step, 10) for i in range(0, number_points)]
-            # # note: digit of time
-            # init = initialCondition
-            # trace = [[0]+init]
-            # for i in range(len(t)):
-            #     # print(init)
-            #     r = ode(self.dynamic)
-            #     r.set_initial_value(init)
-            #     res: np.ndarray = r.integrate(r.t + time_step)
-            #     init = res.flatten().tolist()
-            #     trace.append([t[i] + time_step] + init)
-
-        # print(trace)
+            trace.append([t[i] + time_step] + init)
         return np.array(trace)
 
+
 if __name__ == '__main__':
-    aquad = quadrotor_agent2('agent2', file_name='./quad_controller.py')
+    aquad = quadrotor_agent('agent1')
 
     # Initialize simulation states
-    trace = aquad.TC_simulate(None, [0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,], 10, 0.001)
-    # print(trace)
-    import matplotlib.pyplot as plt
-    plt.plot(trace[:,1], trace[:,2],'b')
-    plt.show()
+    trace = aquad.TC_Simulate(['none'], [1.25, 2.25], 7, 0.05)
+    print(trace)
