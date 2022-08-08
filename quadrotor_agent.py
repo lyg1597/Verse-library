@@ -6,14 +6,8 @@ import math
 from scipy.integrate import ode
 import numpy.linalg as la
 
-<<<<<<< HEAD
-from verse.agents import BaseAgent
-from verse.map import LaneMap
-
-=======
 from verse import BaseAgent
 from verse.map import LaneMap
->>>>>>> 4268ad9 (L1_quadrotor)
 
 class quadrotor_agent(BaseAgent):
     def __init__(self, id, code=None, file_name=None):

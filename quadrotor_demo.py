@@ -27,10 +27,6 @@ if __name__ == "__main__":
     # modify mode list input
     # Step 2. change the initial codnitions (set for all 18 states)
     scenario.set_init(
-        [[     
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.37, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 2.63, 0.0]
-        ]],
         [
              #20 states: (position, velocity, Rotation matrix, omega, mass, time)
         [   [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.37, 0.0],
