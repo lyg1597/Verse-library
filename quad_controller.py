@@ -39,12 +39,12 @@ def controller(ego: State, lane_map):
     output = copy.deepcopy(ego)
     # print(ego.cycle_time)
     if ego.agent_mode == AgentMode.Mode1:
-        if ego.cycle_time>4.0:
+        if ego.cycle_time>6.0:
             output.agent_mode = AgentMode.Mode2
             output.cycle_time = 0.0
 
     if ego.agent_mode == AgentMode.Mode2:
-        if ego.cycle_time>4.0:
+        if ego.cycle_time>6.0:
             output.agent_mode = AgentMode.Mode3
             output.cycle_time = 0.0
     return output

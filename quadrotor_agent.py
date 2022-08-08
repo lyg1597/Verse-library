@@ -6,9 +6,14 @@ import math
 from scipy.integrate import ode
 import numpy.linalg as la
 
+<<<<<<< HEAD
 from verse.agents import BaseAgent
 from verse.map import LaneMap
 
+=======
+from verse import BaseAgent
+from verse.map import LaneMap
+>>>>>>> 4268ad9 (L1_quadrotor)
 
 class quadrotor_agent(BaseAgent):
     def __init__(self, id, code=None, file_name=None):
@@ -441,11 +446,14 @@ class quadrotor_agent(BaseAgent):
         number_points = int(np.ceil(time_bound/time_step))
         t = [round(i*time_step, 10) for i in range(0, number_points)]
 
+
         init = initialCondition
         trace = [[0]+init]
+        r = self.action_handler(mode[0])
+        r.set_integrator('dopri5', nsteps=2000).set_initial_value(init)    
         for i in range(len(t)):
-            r = self.action_handler(mode[0])
-            r.set_integrator('dopri5', nsteps=2000).set_initial_value(init)
+            # if i > 100:
+            #     print("stop")
             res: np.ndarray = r.integrate(r.t + time_step)
             init = res.flatten().tolist()
             trace.append([t[i] + time_step] + init)

@@ -6,8 +6,7 @@ import plotly.graph_objects as go
 from enum import Enum, auto
 
 import matplotlib.pyplot as plt
-from verse.plotter.plotter2D_old import plot_reachtube_tree
-
+from plotter2D_old import plot_reachtube_tree
 
 class AgentMode(Enum):
     Mode1 = auto() # mode of the uncertain mass (from 0.5m to 3.5m)
@@ -33,12 +32,21 @@ if __name__ == "__main__":
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 2.63, 0.0]
         ]],
         [
+             #20 states: (position, velocity, Rotation matrix, omega, mass, time)
+        [   [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.37, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 2.63, 0.0]
+        ], # tuning knobs (initial condition uncertainty)
+            # [[1.25], [1.25]],
+            # [[1.25, 2.25], [1.25, 2.25]],
+            # [[1.55, 2.35], [1.55, 2.35]]
+        ],
+        [
             tuple([AgentMode.Mode1]),
+            # tuple([AgentMode.Default]),
         ]
     )
-    t_max = 6
-    # traces = scenario.simulate(t_max, 0.01)
-    
+    t_max = 10.0
+
     # N = int(100*t_max + 1)
     # t = np.linspace(0,t_max,N)
     # x_des_array = []
@@ -49,18 +57,48 @@ if __name__ == "__main__":
     #     x_des_array.append(2*(1-np.cos(t_step)))
     #     y_des_array.append(2*np.sin(t_step))
     #     z_des_array.append(1.0 + np.sin(t_step))
+
+    # traces = scenario.simulate(t_max, 0.05)
     # fig = go.Figure()
-    # fig = simulation_tree(traces, None, fig, 0, 1, 'lines', 'trace', print_dim_list=[1,2])
+    # """use these lines for generating x-y (phase) plots"""
+    # fig = simulation_tree(traces, None, fig, 0, 1,
+    #                         'lines', 'trace', print_dim_list=[1,2])
+    # fig.add_trace(go.Scatter(x=t, y=x_des_array,mode="lines",line=dict(color="#0000ff"))) 
+    # fig.update_xaxes(range=[-0.5, 10.5],constrain="domain")
+    # fig.show()
+    # fig = go.Figure()
+    # """use these lines for generating x-y (phase) plots"""
+    # fig = simulation_tree(traces, None, fig, 0, 2,
+    #                         'lines', 'trace', print_dim_list=[1,2])
+    # fig.add_trace(go.Scatter(x=t, y=y_des_array,mode="lines",line=dict(color="#0000ff"))) 
+    # fig.update_xaxes(range=[-0.5, 10.5],constrain="domain")
+    # fig.show()
+    # fig = go.Figure()
+    # """use these lines for generating x-y (phase) plots"""
+    # fig = simulation_tree(traces, None, fig, 1, 2,
+    #                         'lines', 'trace', print_dim_list=[1,2])
     # fig.add_trace(go.Scatter(x=x_des_array, y=y_des_array,mode="lines",line=dict(color="#0000ff"))) 
-    # fig.update_yaxes(scaleanchor = "x",scaleratio = 1,)
-    # fig.update_xaxes(range=[-0.5, 4.5],constrain="domain")
+    # fig.update_xaxes(range=[-0.5, 10.5],constrain="domain")
     # fig.show()
 
-    traces = scenario.verify(t_max, 0.01)
-
-    fig = plot_reachtube_tree(traces.root, 'quad1', 0, [1])
+    traces = scenario.verify(t_max, 0.05)
+    fig = plt.figure(0)
+    fig = plot_reachtube_tree(traces.root, 'quad1', 0, [1], fig=fig)
+    fig = plt.figure(1)
+    fig = plot_reachtube_tree(traces.root, 'quad1', 0, [2], fig=fig)
+    fig = plt.figure(2)
+    fig = plot_reachtube_tree(traces.root, 'quad1', 0, [3], fig=fig)
     plt.show()
+    # path = os.path.abspath(__file__)
+    # path = path.replace('quadrotor_demo.py', 'output_geo_L1_TEST.json')
+    # write_json(traces, path)
 
+
+
+    # for t_step in t:
+    #     x_des_array.append(2*(1-np.cos(t_step)))
+    #     y_des_array.append(2*np.sin(t_step))
+    #     z_des_array.append(1.0 + np.sin(t_step))
     # fig = go.Figure()
     # """use these lines for generating x-y (phase) plots"""
     # fig = reachtube_tree(traces, None, fig, 1, 2,
