@@ -246,20 +246,19 @@ def trimTraces(traces):
     trace_len = min(len(trace) for trace in traces)
     return [trace[:trace_len] for trace in traces]
 
-
-def calc_bloated_tube(
-    mode_label,
-    initial_set,
-    time_horizon,
-    time_step,
-    sim_func,
-    bloating_method,
-    kvalue,
-    sim_trace_num,
-    guard_checker=None,
-    guard_str="",
-    lane_map=None,
-):
+def calc_bloated_tube_dryvr(
+        mode_label,
+        initial_set,
+        time_horizon,
+        time_step,
+        sim_func,
+        bloating_method,
+        kvalue,
+        sim_trace_num,
+        guard_checker=None,
+        guard_str="",
+        lane_map = None
+    ):
     """
     This function calculate the reach tube for single given mode
 

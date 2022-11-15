@@ -59,13 +59,20 @@ if __name__ == "__main__":
     # traces = scenario.simulate(40, time_step, seed=4)
     # traces.dump("./output1.json")
     # traces = AnalysisTree.load('./output1.json')
-    if bench.config.compare:
-        traces1, traces2 = bench.compare_run(40, time_step, seed=4)
-        exit(0)
-    traces = bench.run(40, time_step, seed=4)
-    if bench.config.dump:
-        traces.dump(os.path.join(script_dir, "output1_sim.json"))
-    if bench.config.plot:
+    start_time = time.time()
+    traces = scenario.simulate(40, time_step, seed=4)
+    run_time = time.time() - start_time
+    traces.dump('demo/tacas2023/exp1/output1_sim.json')
+    # print({
+    #     "#A": len(scenario.agent_dict),
+    #     "A": "Q",
+    #     "Map": "M6",
+    #     "postCont": "DryVR",
+    #     "Noisy S": "No",
+    #     "# Tr": len(traces.nodes),
+    #     "Run Time": run_time,
+    # })
+    if len(sys.argv) > 1 and sys.argv[1]=='p':
         fig = go.Figure()
         fig = draw_map_3d(tmp_map, fig, fill_type="center")
         fig = simulation_tree_3d(traces, tmp_map, fig, 1, 2, 3, [1, 2, 3])

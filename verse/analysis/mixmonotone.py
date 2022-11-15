@@ -55,7 +55,7 @@ def find_max_symbolic(expr, var_range):
 def compute_reachtube_mixmono_disc(
     initial_set, uncertain_var_bound, time_horizon, time_step, decomposition
 ):
-    initial_set = initial_set[0]
+    # initial_set = initial_set[0]
     number_points = int(np.ceil(time_horizon / time_step))
     t = [round(i * time_step, 10) for i in range(0, number_points)]
     trace = [[0] + initial_set[0] + initial_set[1]]
@@ -90,13 +90,13 @@ def compute_reachtube_mixmono_disc(
             ]
         ).tolist()
         res.append(res1)
-    return res
+    return np.array(res)
 
 
 def compute_reachtube_mixmono_cont(
     initial_set, uncertain_var_bound, time_horizon, time_step, decomposition
 ):
-    initial_set = initial_set[0]
+    # initial_set = initial_set[0]
     num_var = len(initial_set[0])
     num_uncertain_var = len(uncertain_var_bound[0])
 
@@ -146,7 +146,7 @@ def compute_reachtube_mixmono_cont(
             ]
         ).tolist()
         res.append(res1)
-    return res
+    return np.array(res)
 
 
 def calculate_bloated_tube_mixmono_cont(

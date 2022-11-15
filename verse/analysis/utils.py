@@ -19,6 +19,8 @@ Interval = Union[
 ]
 
 
+EGO, OTHERS = "ego", "others"
+
 def to_serializable(arg: Union[np.ndarray, List]) -> List:
     if isinstance(arg, np.ndarray):
         return arg.tolist()
