@@ -198,7 +198,7 @@ def trimTraces(traces):
     trace_len = min(len(trace) for trace in traces)
     return [trace[:trace_len] for trace in traces]
 
-def calc_bloated_tube(
+def calc_bloated_tube_dryvr(
         mode_label,
         initial_set,
         time_horizon,
