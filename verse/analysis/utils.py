@@ -18,6 +18,9 @@ Interval = Union[np.ndarray,
 
 EGO, OTHERS = "ego", "others"
 
+def red(s):
+    return "\x1b[31m" + s + "\x1b[0m"
+
 def to_serializable(arg: Union[np.ndarray, List]) -> List:
     if isinstance(arg, np.ndarray):
         return arg.tolist()
