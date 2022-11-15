@@ -326,9 +326,8 @@ class Verifier:
         node: AnalysisTreeNode,
         track_map, 
         sensor,
-        agent_dict,
         cache: Dict={},
-        path_to_sim=[],
+        paths=[],
 
     ):
         # For each agent
@@ -418,8 +417,8 @@ class Verifier:
             state_dict = {aid: (node.trace[aid][idx*2:idx*2+2], node.mode[aid], node.static[aid]) for aid in node.agent}
 
             asserts = defaultdict(list)
-            for agent_id in agent_dict.keys():
-                agent: BaseAgent = agent_dict[agent_id]
+            for agent_id in node.agent.keys():
+                agent: BaseAgent = node.agent[agent_id]
                 if len(agent.decision_logic.args) == 0:
                     continue
                 agent_state, agent_mode, agent_static = state_dict[agent_id]
@@ -527,7 +526,7 @@ class Verifier:
                     src_track = node.get_track(agent, node.mode[agent])
                     dest_mode = node.get_mode(agent, dest)
                     dest_track = node.get_track(agent, dest)
-                    if dest_track == track_map.h(src_track, src_mode, dest_mode):
+                    if not track_map or dest_track == track_map.h(src_track, src_mode, dest_mode):
                         possible_transitions.append(transition)
         # Return result
         return None, possible_transitions
@@ -672,7 +671,7 @@ class Verifier:
                     # pp(("to sim", new_cache.keys(), len(paths_to_sim)))
 
             # Get all possible transitions to next mode
-            asserts, all_possible_transitions = self.postDisc(node, transition_graph.map, transition_graph.sensor, transition_graph.agent_dict, new_cache, paths_to_sim)
+            asserts, all_possible_transitions = self.postDisc(node, transition_graph.map, transition_graph.sensor, new_cache, paths_to_sim)
             # asserts, all_possible_transitions = transition_graph.get_transition_verify(new_cache, paths_to_sim, node)
             # pp(("transitions:", [(t[0], t[2]) for t in all_possible_transitions]))
             node.assert_hits = asserts
