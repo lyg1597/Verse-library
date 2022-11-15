@@ -312,11 +312,11 @@ class Verifier:
         node: AnalysisTreeNode,
         remain_time: float,
         time_step: float, 
-        lane_map, 
+        track_map, 
         combine_seg_length: int = 1000, 
         reachability_method: str = 'DRYVR', 
         params: Dict = {}
-    ):
+    ) -> AnalysisTreeNode:
         for agent_id in node.agent:
             mode = node.mode[agent_id]
             inits = node.init[agent_id]
@@ -356,7 +356,7 @@ class Verifier:
                                             bloating_method,
                                             100,
                                             SIMTRACENUM,
-                                            lane_map = lane_map
+                                            lane_map = track_map
                                             )
                     elif reachability_method == "NeuReach":
                         from verse.analysis.NeuReach.NeuReach_onestep_rect import calculate_bloated_tube_NeuReach
@@ -366,7 +366,7 @@ class Verifier:
                             remain_time, 
                             time_step, 
                             node.agent[agent_id].TC_simulate, 
-                            lane_map,
+                            track_map,
                             params, 
                         )
                     elif reachability_method == "MIXMONO_CONT":
@@ -378,7 +378,7 @@ class Verifier:
                             remain_time,
                             time_step, 
                             node.agent[agent_id],
-                            lane_map
+                            track_map
                         )
                     elif reachability_method == "MIXMONO_DISC":
                         uncertain_param = node.uncertain_param[agent_id]
@@ -389,7 +389,7 @@ class Verifier:
                             remain_time,
                             time_step,
                             node.agent[agent_id],
-                            lane_map
+                            track_map
                         ) 
                     else:
                         raise ValueError(f"Reachability computation method {reachability_method} not available.")

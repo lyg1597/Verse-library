@@ -59,6 +59,36 @@ class TestSimulatorMethods(unittest.TestCase):
         assert len(res.trace['test'])==280
         pass
 
+    def test_postCont_2(self):
+        from verse.analysis.simulator import Simulator
+        from origin_agent import vanderpol_agent
+        from verse.analysis.analysis_tree import AnalysisTreeNode
+        from verse.scenario import ScenarioConfig
+
+        node = AnalysisTreeNode(
+            init={'test':[1.25, 2.25]},
+            mode={'test':'Normal'},
+            agent={'test':vanderpol_agent('test')},
+            start_time=0,
+            type='reachtube',
+        )
+
+        remain_time = 7
+        time_step = 0.05
+        track_map = None
+        
+        tmp_verifier = Simulator(ScenarioConfig())
+        res = tmp_verifier.postCont(
+            node,
+            remain_time, 
+            time_step, 
+            track_map,
+        )
+        assert len(res.trace)==1
+        assert len(res.trace['test'])==141, str(len(res.trace['test']))
+        pass
+
+
     def test_postDisc_1(self):
         from verse.analysis.verifier import Verifier
         from origin_agent import thermo_agent
@@ -98,5 +128,43 @@ class TestSimulatorMethods(unittest.TestCase):
         assert reset_rect == [[60,10,0],[61,10,0]]
         assert reset_idx == 0
 
-if __name__ == "__main__":
+    def test_postDisc_2(self):
+        from verse.analysis.simulator import Simulator
+        from origin_agent import thermo_agent
+        from verse.analysis.analysis_tree import AnalysisTreeNode
+        from verse.scenario import ScenarioConfig
+        from thermo_controller import thermo_controller_codestring
+        from verse.map.lane_map import LaneMap
+        from verse.sensor.base_sensor import BaseSensor
+
+        test_agent = thermo_agent('test',code = thermo_controller_codestring)
+        node = AnalysisTreeNode(
+            trace = {'test':[[0,60,10,0.9],[0.1,60.1,10,1.0]]},
+            mode={'test':['ON']},
+            static={'test':[]},
+            agent={'test':test_agent},
+        )
+
+        tmp_verifier = Simulator(ScenarioConfig())
+        asserts, all_possible_transitions, transition_idx = tmp_verifier.postDisc(
+            node,
+            None,
+            BaseSensor(),
+        )
+
+        # print(asserts, all_possible_transitions, transition_idx)
+        assert asserts is None, asserts
+        # assert 
+        assert transition_idx == 1, transition_idx
+
+        transition = all_possible_transitions['test'][0]
+        agent_id = transition[0]
+        transition_dest = transition[1]
+        reset_rect = transition[2]
+
+        assert agent_id=='test'
+        assert transition_dest == ('OFF',)
+        assert reset_rect == [60.1,10,0], reset_rect
+        
+if __name__ == '__main__':
     unittest.main()
