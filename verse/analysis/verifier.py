@@ -253,6 +253,10 @@ class Verifier:
                         bloating_method = 'PW'
                         if 'bloating_method' in params:
                             bloating_method = params['bloating_method']
+                        if 'simtracenum' in params:
+                            sim_trace_num = params['simtracenum']
+                        else:
+                            sim_trace_num = SIMTRACENUM
                         
                         res_tube = calc_bloated_tube_dryvr(
                                             mode,
@@ -262,7 +266,7 @@ class Verifier:
                                             node.agent[agent_id].TC_simulate,
                                             bloating_method,
                                             100,
-                                            SIMTRACENUM,
+                                            sim_trace_num,
                                             lane_map = track_map
                                             )
                     elif reachability_method == "NeuReach":
