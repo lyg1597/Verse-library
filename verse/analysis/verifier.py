@@ -269,6 +269,28 @@ class Verifier:
                                             sim_trace_num,
                                             lane_map = track_map
                                             )
+                    elif reachability_method == "DRYVR-DISC":
+                        from verse.analysis.dryvr_disc import calc_bloated_tube_dryvr, SIMTRACENUM
+                        # pp(('tube', agent_id, mode, inits))
+                        bloating_method = 'PW'
+                        if 'bloating_method' in params:
+                            bloating_method = params['bloating_method']
+                        if 'simtracenum' in params:
+                            sim_trace_num = params['simtracenum']
+                        else:
+                            sim_trace_num = SIMTRACENUM
+                        
+                        res_tube = calc_bloated_tube_dryvr(
+                                            mode,
+                                            combined_rect,
+                                            remain_time,
+                                            time_step, 
+                                            node.agent[agent_id].TC_simulate,
+                                            bloating_method,
+                                            100,
+                                            sim_trace_num,
+                                            lane_map = track_map
+                                            )
                     elif reachability_method == "NeuReach":
                         from verse.analysis.NeuReach.NeuReach_onestep_rect import calculate_bloated_tube_NeuReach
                         res_tube = calculate_bloated_tube_NeuReach(
