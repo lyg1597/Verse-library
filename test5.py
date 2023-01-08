@@ -3,7 +3,6 @@ import jax.numpy as jnp
 from jax.example_libraries import optimizers
 from jax import jacfwd, jacrev, jit
 import matplotlib.pyplot as plt
-from tqdm.auto import tqdm
 
 dt = 0.1
 
@@ -23,9 +22,9 @@ def decision_logic_smooth(state, theta):
     sig1 = 0
     sig2 = 0
     sig3 = 0
-    sig1 = -1/(jnp.exp(-10*(t-10))+1)+1
-    sig2 = (-0.5)/(jnp.exp(-10*(t-theta_t1))+1)
-    sig3 = -(-0.5)/(jnp.exp(-10*(t-40))+1)
+    sig1 = -1/(jnp.exp(-1*(t-10))+1)+1
+    sig2 = (-0.5)/(jnp.exp(-1*(t-theta_t1))+1)
+    sig3 = -(-0.5)/(jnp.exp(-1*(t-40))+1)
     return sig1+sig2+sig3
 
 def decision_logic(state, theta):
@@ -135,44 +134,44 @@ def loss_func_smooth(t,x,v,theta_t1,t_max,ref_pos):
     # print(jax.numpy.asarray(loss))
     return loss
 
-if __name__ == "__main__":
-    t,x,v = 0.0,0.0,0.0
-    theta_t1 = 20.0
-    t_max = 50.0
-    ref_pos = 250.0
-    trajectory = jnp.array(compute_trajectory([t,x,v, theta_t1, t_max]))
-    plt.plot(trajectory[:,0], trajectory[:,1])
-    trajectory_smooth = jnp.array(compute_trajectory_smooth([t,x,v, theta_t1, t_max]))
-    plt.plot(trajectory_smooth[:,0], trajectory_smooth[:,1])
+# if __name__ == "__main__":
+#     t,x,v = 0.0,0.0,0.0
+#     theta_t1 = 20.0
+#     t_max = 50.0
+#     ref_pos = 250.0
+#     trajectory = jnp.array(compute_trajectory([t,x,v, theta_t1, t_max]))
+#     plt.plot(trajectory[:,0], trajectory[:,1])
+#     trajectory_smooth = jnp.array(compute_trajectory_smooth([t,x,v, theta_t1, t_max]))
+#     plt.plot(trajectory_smooth[:,0], trajectory_smooth[:,1])
 
-    import numpy as np 
-    plt.figure()
-    steps = np.linspace(0,50,100)
-    res = []
-    for step in steps:
-        tmp = decision_logic([step,0,0],[20])
-        res.append(tmp)
-    plt.plot(steps, res)    
-    res = []
-    for step in steps:
-        tmp = decision_logic_smooth([step,0,0],[20])
-        res.append(tmp)
-    plt.plot(steps, res)
+#     import numpy as np 
+#     plt.figure()
+#     steps = np.linspace(0,50,100)
+#     res = []
+#     for step in steps:
+#         tmp = decision_logic([step,0,0],[20])
+#         res.append(tmp)
+#     plt.plot(steps, res)    
+#     res = []
+#     for step in steps:
+#         tmp = decision_logic_smooth([step,0,0],[20])
+#         res.append(tmp)
+#     plt.plot(steps, res)
 
-    plt.figure()
-    steps = np.linspace(10, 40, 300)
-    res = []
-    for step in steps:
-        tmp = loss_func(t,x,v,step,t_max,ref_pos)
-        print(tmp)
-        res.append(tmp)
-    plt.plot(steps, res)    
-    res = []
-    for step in steps:
-        tmp = loss_func_smooth(t,x,v,step,t_max,ref_pos)
-        res.append(tmp)
-    plt.plot(steps, res)    
-    plt.show()
+#     plt.figure()
+#     steps = np.linspace(10, 40, 300)
+#     res = []
+#     for step in steps:
+#         tmp = loss_func(t,x,v,step,t_max,ref_pos)
+#         print(tmp)
+#         res.append(tmp)
+#     plt.plot(steps, res)    
+#     res = []
+#     for step in steps:
+#         tmp = loss_func_smooth(t,x,v,step,t_max,ref_pos)
+#         res.append(tmp)
+#     plt.plot(steps, res)    
+#     plt.show()
 
 
 # if __name__ == "__main__":
@@ -185,47 +184,47 @@ if __name__ == "__main__":
 #     plt.plot(steps, res)
 #     plt.show()
 
-# if __name__ == "__main__":
-#     t,x,v = 0.0,0.0,0.0
-#     theta = -0.5
-#     theta1, theta2, theta3 = 10.0,20.0,30.0
-#     t_max = 50.0
+if __name__ == "__main__":
+    t,x,v = 0.0,0.0,0.0
+    theta = -0.5
+    theta1, theta2, theta3 = 10.0,20.0,30.0
+    t_max = 50.0
 
-#     # res = jacfwd(compute_trajectory)([t,x,v,theta, t_max])    
-#     # print("jacfwd result, with shape", res.shape)
-#     # print(res)
+    # res = jacfwd(compute_trajectory)([t,x,v,theta, t_max])    
+    # print("jacfwd result, with shape", res.shape)
+    # print(res)
 
-#     # trajectory = jnp.array(compute_trajectory([t,x,v,theta, t_max]))
-#     # plt.plot(trajectory[:,0], trajectory[:,1])
-#     # plt.plot(trajectory[:,0], trajectory[:,2])
-#     # plt.show()
-#     # grad_loss = jit(grad_loss)
+    # trajectory = jnp.array(compute_trajectory([t,x,v,theta, t_max]))
+    # plt.plot(trajectory[:,0], trajectory[:,1])
+    # plt.plot(trajectory[:,0], trajectory[:,2])
+    # plt.show()
+    # grad_loss = jit(grad_loss)
 
-#     learning_rate = 0.0001
+    learning_rate = 0.0001
 
-#     theta_a1 = 2.0
-#     theta_a2 = -1.0
-#     theta_t1 = 15.0
-#     theta_t2 = 15.0
-#     ref_pos = 250.0
+    theta_a1 = 2.0
+    theta_a2 = -1.0
+    theta_t1 = 15.0
+    theta_t2 = 15.0
+    ref_pos = 250.0
 
-#     theta_a = -0.8003115
+    theta_a = -0.8003115
     
-#     # res = loss_func(t,x,v,theta_a1, theta_a2, t_max, ref_pos)
-#     # print(res)
+    # res = loss_func(t,x,v,theta_a1, theta_a2, t_max, ref_pos)
+    # print(res)
 
-#     # trajectory = jnp.array(compute_trajectory([t,x,v,theta_a1, theta_a2, t_max]))
-#     # plt.plot(trajectory[:,0], trajectory[:,1])
-#     # plt.plot(trajectory[:,0], trajectory[:,2])
-#     # plt.show()
+    # trajectory = jnp.array(compute_trajectory([t,x,v,theta_a1, theta_a2, t_max]))
+    # plt.plot(trajectory[:,0], trajectory[:,1])
+    # plt.plot(trajectory[:,0], trajectory[:,2])
+    # plt.show()
 
-#     grad_loss = jax.grad(loss_func, argnums=(3,))
-#     # grad_loss = jit(grad_loss)
-#     for i in range(500):
-#         loss_val = loss_func(t,x,v,theta_t1,t_max,ref_pos)
-#         grad_t1, = grad_loss(t,x,v,theta_t1,t_max,ref_pos)
-#         print(i, theta_t1, loss_val, grad_t1)
-#         theta_t1 -= learning_rate * grad_t1
-#         # theta_t2 -= learning_rate * grad_t2
+    grad_loss = jax.grad(loss_func_smooth, argnums=(3,))
+    # grad_loss = jit(grad_loss)
+    for i in range(500):
+        loss_val = loss_func_smooth(t,x,v,theta_t1,t_max,ref_pos)
+        grad_t1, = grad_loss(t,x,v,theta_t1,t_max,ref_pos)
+        print(i, theta_t1, loss_val, grad_t1)
+        theta_t1 -= learning_rate * grad_t1
+        # theta_t2 -= learning_rate * grad_t2
 
-#     print(theta_t1)
+    print(theta_t1)
