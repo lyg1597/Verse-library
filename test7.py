@@ -20,6 +20,16 @@ def vehicleDynamics1(state):
     return jnp.array([t_next, x_next, v_next])
 
 def vehicleDynamics2(state):
+    a = 0.0
+    t,x,v = state
+
+    t_next = t + dt*1 
+    x_next = x + dt*v 
+    v_next = v + dt*a 
+
+    return jnp.array([t_next, x_next, v_next])
+
+def vehicleDynamics3(state):
     a = -0.5
     t,x,v = state
 
@@ -32,13 +42,16 @@ def vehicleDynamics2(state):
 def decision_logic_smooth(state, theta):
     t,x,v = state 
     theta_t1, = theta
-    sig1 = 1/(jnp.exp(-1*(t-theta_t1))+1)
-    return sig1
+    sig1 = 1/(jnp.exp(-1*(t-10))+1)
+    sig2 = 1/(jnp.exp(-1*(t-theta_t1))+1)
+    return [sig1,sig2]
 
 def decision_logic(state, theta):
     t,x,v = state 
     theta_t1, = theta
-    if t > theta_t1:
+    if t>theta_t1:
+        mode = 2
+    elif t > 10 and t<theta_t1:
         mode = 1 
     else:
         mode = 0
@@ -54,9 +67,9 @@ def compute_trajectory_smooth(inp):
     state = init_state
 
     trajectory = [state]
-    for _ in range(300):
-        mode = decision_logic_smooth(state, theta)
-        new_state = (1-mode)*jit(vehicleDynamics1)(state) + mode*jit(vehicleDynamics2)(state)
+    for _ in range(400):
+        mode1, mode2 = decision_logic_smooth(state, theta)
+        new_state = (1-mode2)*(1-mode1)*jit(vehicleDynamics1)(state) + (1-mode2)*mode1*jit(vehicleDynamics2)(state) + mode2*jit(vehicleDynamics3)(state)
         state = new_state
         trajectory.append(state)
     return trajectory
@@ -72,12 +85,15 @@ def compute_trajectory(inp):
     state = init_state
 
     trajectory = [state]
-    for _ in range(300):
+    for _ in range(400):
         mode = decision_logic(state, theta)
         if mode == 0:
             new_state = jit(vehicleDynamics1)(state)
-        else:
+        elif mode == 1:
             new_state = jit(vehicleDynamics2)(state)
+        else:
+            new_state = jit(vehicleDynamics3)(state)
+        
         state = new_state
         trajectory.append(state)
     return trajectory
@@ -93,12 +109,14 @@ def compute_endstate(inp):
     state = init_state
 
     trajectory = [state]
-    for _ in range(300):
+    for _ in range(400):
         mode = decision_logic(state, theta)
         if mode == 0:
             new_state = jit(vehicleDynamics1)(state)
+        elif mode == 1:
+            new_state = jit(vehicleDynamics2)(state)
         else:
-            new_state = jit(vehicleDynamics2)(state)        
+            new_state = jit(vehicleDynamics3)(state)       
         state = new_state
     #     trajectory.append(state)
     # return trajectory
@@ -114,9 +132,9 @@ def compute_endstate_smooth(inp):
     state = init_state
 
     trajectory = [state]
-    for _ in range(300):
-        mode = decision_logic_smooth(state, theta)
-        new_state = (1-mode)*jit(vehicleDynamics1)(state) + mode*jit(vehicleDynamics2)(state)
+    for _ in range(400):
+        mode1, mode2 = decision_logic_smooth(state, theta)
+        new_state = (1-mode2)*(1-mode1)*jit(vehicleDynamics1)(state) + (1-mode2)*mode1*jit(vehicleDynamics2)(state) + mode2*jit(vehicleDynamics3)(state)
         state = new_state
     #     trajectory.append(state)
     # return trajectory
@@ -144,44 +162,44 @@ def loss_func_smooth(t,x,v,theta_t1,t_max,ref_pos):
     # print(jax.numpy.asarray(loss))
     return loss
 
-# if __name__ == "__main__":
-#     t,x,v = 0.0,0.0,0.0
-#     theta_t1 = 10.0
-#     t_max = 30.0
-#     ref_pos = 150.0
-#     trajectory = jnp.array(compute_trajectory([t,x,v, theta_t1, t_max]))
-#     plt.plot(trajectory[:,0], trajectory[:,1])
-#     trajectory_smooth = jnp.array(compute_trajectory_smooth([t,x,v, theta_t1, t_max]))
-#     plt.plot(trajectory_smooth[:,0], trajectory_smooth[:,1])
+if __name__ == "__main__":
+    t,x,v = 0.0,0.0,0.0
+    theta_t1 = 20.0
+    t_max = 30.0
+    ref_pos = 150.0
+    trajectory = jnp.array(compute_trajectory([t,x,v, theta_t1, t_max]))
+    plt.plot(trajectory[:,0], trajectory[:,1])
+    trajectory_smooth = jnp.array(compute_trajectory_smooth([t,x,v, theta_t1, t_max]))
+    plt.plot(trajectory_smooth[:,0], trajectory_smooth[:,1])
 
-#     # import numpy as np 
-#     # plt.figure()
-#     # steps = np.linspace(0,50,100)
-#     # res = []
-#     # for step in steps:
-#     #     tmp = decision_logic([step,0,0],[20])
-#     #     res.append(tmp)
-#     # plt.plot(steps, res)    
-#     # res = []
-#     # for step in steps:
-#     #     tmp = decision_logic_smooth([step,0,0],[20])
-#     #     res.append(tmp)
-#     # plt.plot(steps, res)
+    # import numpy as np 
+    # plt.figure()
+    # steps = np.linspace(0,50,100)
+    # res = []
+    # for step in steps:
+    #     tmp = decision_logic([step,0,0],[20])
+    #     res.append(tmp)
+    # plt.plot(steps, res)    
+    # res = []
+    # for step in steps:
+    #     tmp = decision_logic_smooth([step,0,0],[20])
+    #     res.append(tmp)
+    # plt.plot(steps, res)
 
-#     # plt.figure()
-#     # steps = np.linspace(10, 40, 300)
-#     # res = []
-#     # for step in steps:
-#     #     tmp = loss_func(t,x,v,step,t_max,ref_pos)
-#     #     print(tmp)
-#     #     res.append(tmp)
-#     # plt.plot(steps, res)    
-#     # res = []
-#     # for step in steps:
-#     #     tmp = loss_func_smooth(t,x,v,step,t_max,ref_pos)
-#     #     res.append(tmp)
-#     # plt.plot(steps, res)    
-#     plt.show()
+    # plt.figure()
+    # steps = np.linspace(10, 40, 300)
+    # res = []
+    # for step in steps:
+    #     tmp = loss_func(t,x,v,step,t_max,ref_pos)
+    #     print(tmp)
+    #     res.append(tmp)
+    # plt.plot(steps, res)    
+    # res = []
+    # for step in steps:
+    #     tmp = loss_func_smooth(t,x,v,step,t_max,ref_pos)
+    #     res.append(tmp)
+    # plt.plot(steps, res)    
+    plt.show()
 
 
 # if __name__ == "__main__":
@@ -198,7 +216,7 @@ def loss_func_smooth(t,x,v,theta_t1,t_max,ref_pos):
 #     t,x,v = 0.0,0.0,0.0
 #     theta = -0.5
 #     theta1, theta2, theta3 = 10.0,20.0,30.0
-#     t_max = 30.0
+#     t_max = 40.0
 
 #     # res = jacfwd(compute_trajectory)([t,x,v,theta, t_max])    
 #     # print("jacfwd result, with shape", res.shape)
