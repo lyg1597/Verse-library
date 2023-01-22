@@ -1,3 +1,4 @@
+import pickle
 from typing import Dict, List, Optional, Tuple
 import copy, itertools, functools, pprint, ray
 from pympler.asizeof import asizeof
@@ -7,6 +8,7 @@ from verse.analysis.incremental import SimTraceCache, convert_sim_trans, to_simu
 from verse.analysis.utils import dedup
 from verse.map.lane_map import LaneMap
 from verse.parser.parser import ModePath, find
+# from verse.scenario.scenario import ScenarioConfig
 # from verse.scenario.scenario import Scenario
 pp = functools.partial(pprint.pprint, compact=True, width=130)
 
@@ -26,20 +28,20 @@ class Simulator:
         self.cache_hits = (0, 0)
 
     @ray.remote
-    def simulate_one(self, node: AnalysisTreeNode, later: int, remain_time: float, time_step: float, lane_map: LaneMap, run_num: int, past_runs: List[AnalysisTree], transition_graph: "Scenario") -> Tuple[int, int, List[AnalysisTreeNode], Dict[str, list], list]:
+    def simulate_one(config: "ScenarioConfig", cache, node: AnalysisTreeNode, later: int, remain_time: float, time_step: float, lane_map: LaneMap, run_num: int, past_runs: List[AnalysisTree], transition_graph: "Scenario") -> Tuple[int, int, List[AnalysisTreeNode], Dict[str, list], list]:
         print(f"node id: {node.id}")
         cached_segments = {}
         cache_updates = []
         for agent_id in node.agent:
             mode = node.mode[agent_id]
             init = node.init[agent_id]
-            if self.config.incremental:
+            if config.incremental:
                 # pp(("check hit", agent_id, mode, init))
-                cached = self.cache.check_hit(agent_id, mode, init, node.init)
-                if cached != None:
-                    self.cache_hits = self.cache_hits[0] + 1, self.cache_hits[1]
-                else:
-                    self.cache_hits = self.cache_hits[0], self.cache_hits[1] + 1
+                cached = cache.check_hit(agent_id, mode, init, node.init)
+                # if cached != None:
+                #     self.cache_hits = self.cache_hits[0] + 1, self.cache_hits[1]
+                # else:
+                #     self.cache_hits = self.cache_hits[0], self.cache_hits[1] + 1
                 # pp(("check hit res", agent_id, len(cached.transitions) if cached != None else None))
             else:
                 cached = None
@@ -97,7 +99,7 @@ class Simulator:
         else:
             # If there's no transitions (returned transitions is empty), continue
             if not transitions:
-                if self.config.incremental:
+                if config.incremental:
                     for agent_id in node.agent:
                         if agent_id not in cached_segments:
                             cache_updates.append((agent_id, node, [], full_traces[agent_id], [], transition_idx, run_num))
@@ -106,7 +108,7 @@ class Simulator:
 
             transit_agents = transitions.keys()
             # pp(("transit agents", transit_agents))
-            if self.config.incremental:
+            if config.incremental:
                 for agent_id in node.agent:
                     transition = transitions[agent_id] if agent_id in transit_agents else []
                     if agent_id in cached_segments:
@@ -204,7 +206,7 @@ class Simulator:
                 if remain_time <= 0:
                     continue
                 # For trace not already simulated
-                result_refs.append(self.simulate_one.remote(self, node, later, remain_time, time_step, lane_map, run_num, past_runs, transition_graph))
+                result_refs.append(self.simulate_one.remote(self.config, self.cache, node, later, remain_time, time_step, lane_map, run_num, past_runs, transition_graph))
                 if len(result_refs) >= self.config.parallel_sim_ahead:
                     wait = True
             elif len(result_refs) > 0:
@@ -234,6 +236,7 @@ class Simulator:
                 result_refs = remaining
         
         print("cached", cached)
+        pp(self.cache.get_cached_inits(3))
         self.simulation_tree = AnalysisTree(root)
         return self.simulation_tree
 
