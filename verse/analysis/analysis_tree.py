@@ -1,6 +1,13 @@
-from typing import List, Dict, Any
+from functools import reduce
+import pickle
+from typing import List, Dict, Any, Optional
 import json
 from treelib import Tree
+import numpy.typing as nptyp, numpy as np, portion
+
+from verse.analysis.dryvr import _EPSILON
+
+TraceType = nptyp.NDArray[np.float_]
 
 class AnalysisTreeNode:
     """AnalysisTreeNode class
@@ -25,7 +32,7 @@ class AnalysisTreeNode:
         type = 'simtrace',
         id = 0
     ):
-        self.trace:Dict = trace
+        self.trace: Dict[str, TraceType] = trace
         self.init: Dict[str, List[float]] = init
         self.mode: Dict[str, List[str]] = mode
         self.agent: Dict = agent
@@ -43,11 +50,11 @@ class AnalysisTreeNode:
             'parent': None, 
             'child': [], 
             'agent': {}, 
-            'init': self.init, 
+            'init': {aid: list(init) for aid, init in self.init.items()}, 
             'mode': self.mode, 
             'static': self.static, 
             'start_time': self.start_time,
-            'trace': self.trace, 
+            'trace': {aid: t.tolist() for aid, t in self.trace.items()}, 
             'type': self.type, 
             'assert_hits': self.assert_hits
         }
@@ -83,7 +90,7 @@ class AnalysisTreeNode:
     @staticmethod
     def from_dict(data) -> "AnalysisTreeNode":
         return AnalysisTreeNode(
-            trace = data['trace'],
+            trace = {aid: np.array(data['trace'][aid]) for aid in data["agent"].keys()},
             init = data['init'],
             mode = data['mode'],
             static = data['static'],
