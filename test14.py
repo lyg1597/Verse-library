@@ -5,6 +5,7 @@ from jax import jacfwd, jacrev, jit
 import optax
 import matplotlib
 import matplotlib.pyplot as plt
+jax.config.update('jax_platform_name', 'cpu')
 
 # Moon lander performs one up thrust followed by one right thrust followed by one up thrust
 # Let's add an obstacles
@@ -259,86 +260,88 @@ def loss_func_solution(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, thet
     loss = pos_loss + vel_loss*1000 + seq_loss*1000000 + above_0_loss*100000000 + unsafe_loss*1000
     return loss 
 
-if __name__ == "__main__":
-    import numpy as np 
-    y0 = 0
-    vy0 = 82
-    z0 = 800
-    vz0 = 0
-
-    t = 222.32358 
-    t1 = 5.0115414 
-    t2 = 23.40875 
-    t3 = 61.775997 
-    t4 = 83.10098 
-    t5 = 127.126884 
-    t6 = 219.89009 
-    res_y = []
-    res_z = []
-    res_vy = []
-    res_vz = []
-    res_ay = []
-    res_az = []
-    steps = np.linspace(0,t,1000)
-    tmp = jit(system_trajectory)
-    for step in steps:
-        print(step)
-        res = tmp(step,t1,t2,t3,t4,t5,t6,y0,vy0,z0,vz0)
-        res_z.append(res[0,0])
-        res_vz.append(res[1,0])
-        res_az.append(res[2,0])
-        res_y.append(res[3,0])
-        res_vy.append(res[4,0])
-        res_ay.append(res[5,0])
-    print(system_solution(t,t1,t2,t3,t4,t5,t6,y0,vy0,z0,vz0))
-    print(tmp(t,t1,t2,t3,t4,t5,t6,y0,vy0,z0,vz0))
-    plt.figure()
-    plt.plot([1500,2000,2000,1500,1500],[0,0,800,800,0])
-    plt.plot(res_y, res_z)
-    plt.figure()
-    plt.plot(steps, res_y)
-    plt.figure()
-    plt.plot(steps, res_z)
-    plt.figure()
-    plt.plot(steps, res_vy)
-    plt.figure()
-    plt.plot(steps, res_vz)
-    plt.figure()
-    plt.plot(steps, res_ay)
-    plt.figure()
-    plt.plot(steps, res_az)
-    plt.show()
-
-# if __name__ == "__main__": 
-#     schedule = optax.linear_schedule(5.0, 0.1, 0.001, 1000)
-#     start_learning_rate = 1.0
-#     optimizer = optax.adam(schedule)
-
-#     # Initialize parameters of the model + optimizer.
-#     params = jnp.array([200.0, 0.0, 100.0, 110.0, 120.0,130.0,140.0])
-#     opt_state = optimizer.init(params)
-    
+# if __name__ == "__main__":
+#     import numpy as np 
 #     y0 = 0
 #     vy0 = 82
 #     z0 = 800
 #     vz0 = 0
-#     y_targ = 4000
-#     z_targ = 0
-    
-#     tmp_loss = jit(loss_func) 
-#     tmp = jit(jax.grad(loss_func))
-#     for i in range(2000):
-#         print(i, tmp_loss(params, y0, vy0, z0, vz0, y_targ, z_targ), params)
-#         grads = tmp(params, y0, vy0, z0, vz0, y_targ, z_targ)
-#         updates, opt_state = optimizer.update(grads, opt_state)
-#         params = optax.apply_updates(params, updates)
 
-#     t = params[0]
-#     theta_t1 = params[1]
-#     theta_t2 = params[2]
-#     theta_t3 = params[3]
-#     theta_t4 = params[4]
-#     theta_t5 = params[5]
-#     theta_t6 = params[6]
-#     print(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, theta_t6, system_solution(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, theta_t6,y0,vy0,z0,vz0))
+#     t = 222.32358 
+#     t1 = 5.0115414 
+#     t2 = 23.40875 
+#     t3 = 61.775997 
+#     t4 = 83.10098 
+#     t5 = 127.126884 
+#     t6 = 219.89009 
+#     res_y = []
+#     res_z = []
+#     res_vy = []
+#     res_vz = []
+#     res_ay = []
+#     res_az = []
+#     steps = np.linspace(0,t,1000)
+#     tmp = jit(system_trajectory)
+#     for step in steps:
+#         print(step)
+#         res = tmp(step,t1,t2,t3,t4,t5,t6,y0,vy0,z0,vz0)
+#         res_z.append(res[0,0])
+#         res_vz.append(res[1,0])
+#         res_az.append(res[2,0])
+#         res_y.append(res[3,0])
+#         res_vy.append(res[4,0])
+#         res_ay.append(res[5,0])
+#     print(system_solution(t,t1,t2,t3,t4,t5,t6,y0,vy0,z0,vz0))
+#     print(tmp(t,t1,t2,t3,t4,t5,t6,y0,vy0,z0,vz0))
+#     plt.figure()
+#     plt.plot([1500,2000,2000,1500,1500],[0,0,800,800,0])
+#     plt.plot(res_y, res_z)
+#     plt.figure()
+#     plt.plot(steps, res_y)
+#     plt.figure()
+#     plt.plot(steps, res_z)
+#     plt.figure()
+#     plt.plot(steps, res_vy)
+#     plt.figure()
+#     plt.plot(steps, res_vz)
+#     plt.figure()
+#     plt.plot(steps, res_ay)
+#     plt.figure()
+#     plt.plot(steps, res_az)
+#     plt.show()
+
+if __name__ == "__main__": 
+    schedule = optax.linear_schedule(5.0, 0.1, 0.001, 1000)
+    start_learning_rate = 1.0
+    optimizer = optax.adam(schedule)
+
+    # Initialize parameters of the model + optimizer.
+    params = jnp.array([200.0, 1.0, 100.0, 110.0, 120.0,130.0,140.0])
+    opt_state = optimizer.init(params)
+    
+    y0 = 0
+    vy0 = 82
+    z0 = 800
+    vz0 = 0
+    y_targ = 4000
+    z_targ = 0
+    
+    res = loss_func(params, y0, vy0, z0, vz0, y_targ, z_targ)
+
+    tmp_loss = jit(loss_func) 
+    tmp = jit(jax.grad(loss_func))
+    for i in range(2000):
+        print(i, tmp_loss(params, y0, vy0, z0, vz0, y_targ, z_targ), params)
+        grads = tmp(params, y0, vy0, z0, vz0, y_targ, z_targ)
+        updates, opt_state = optimizer.update(grads, opt_state)
+        params = optax.apply_updates(params, updates)
+
+    t = params[0]
+    theta_t1 = params[1]
+    theta_t2 = params[2]
+    theta_t3 = params[3]
+    theta_t4 = params[4]
+    theta_t5 = params[5]
+    theta_t6 = params[6]
+    print(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, theta_t6, system_solution(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, theta_t6,y0,vy0,z0,vz0))
 
