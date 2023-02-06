@@ -10,6 +10,7 @@ import types
 import sys
 from enum import Enum
 
+import ray
 import numpy as np
 
 from verse.agents.base_agent import BaseAgent
@@ -171,6 +172,7 @@ class ScenarioConfig:
     init_seg_length: int = 1000
     reachability_method: str = 'DRYVR'
     parallel_sim_ahead: int = 8
+    parallel: bool = True
 
 class Scenario:
     def __init__(self, config=ScenarioConfig()):
@@ -299,6 +301,8 @@ class Scenario:
         return res_list
 
     def simulate(self, time_horizon, time_step, seed = None) -> AnalysisTree:
+        if self.config.parallel and not ray.is_initialized():
+            ray.init()
         self.check_init()
         init_list = []
         init_mode_list = []
@@ -335,6 +339,8 @@ class Scenario:
         return tree
 
     def verify(self, time_horizon, time_step, params={}) -> AnalysisTree:
+        if self.config.parallel and not ray.is_initialized():
+            ray.init()
         self.check_init()
         init_list = []
         init_mode_list = []
