@@ -199,18 +199,23 @@ if __name__ == "__main__":
     y_targ = 4000
     z_targ = 0
     
-    for i in range(2000):
-        grads = jax.grad(loss_func)(params, y0, vy0, z0, vz0, y_targ, z_targ)
-        updates, opt_state = optimizer.update(grads, opt_state)
-        params = optax.apply_updates(params, updates)
-        print(i, loss_func(params, y0, vy0, z0, vz0, y_targ, z_targ), params)
+    res = jax.xla_computation(loss_func)(params, y0, vy0, z0, vz0, y_targ, z_targ)
+    with open('test13.dot','w+') as f:
+        f.write(res.as_hlo_dot_graph())
 
-    t = params[0]
-    theta_t1 = params[1]
-    theta_t2 = params[2]
-    theta_t3 = params[3]
-    theta_t4 = params[4]
-    theta_t5 = params[5]
-    theta_t6 = params[6]
-    print(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, theta_t6, system_solution(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, theta_t6,y0,vy0,z0,vz0))
+
+    # for i in range(2000):
+    #     grads = jax.grad(loss_func)(params, y0, vy0, z0, vz0, y_targ, z_targ)
+    #     updates, opt_state = optimizer.update(grads, opt_state)
+    #     params = optax.apply_updates(params, updates)
+    #     print(i, loss_func(params, y0, vy0, z0, vz0, y_targ, z_targ), params)
+
+    # t = params[0]
+    # theta_t1 = params[1]
+    # theta_t2 = params[2]
+    # theta_t3 = params[3]
+    # theta_t4 = params[4]
+    # theta_t5 = params[5]
+    # theta_t6 = params[6]
+    # print(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, theta_t6, system_solution(t, theta_t1, theta_t2, theta_t3, theta_t4, theta_t5, theta_t6,y0,vy0,z0,vz0))
 

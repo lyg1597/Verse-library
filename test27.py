@@ -45,20 +45,20 @@ def ode_solve(func, y0, t1, arg=None, sample_num=100):
     solver = Dopri5()
     sample_array = jnp.linspace(0, t1, sample_num)
     saveat = SaveAt(ts = sample_array)
-    dt = jax.lax.cond(t1>0, lambda arg: 0.01, lambda arg:-0.01, ())
+    dt = jax.lax.cond(t1>0, lambda arg: 0.05, lambda arg:-0.05, ())
     sol = diffeqsolve(term, solver, t0=0, t1=t1, dt0=dt, y0=y0, saveat=saveat, args=arg)
     return sol.ys
 
 def body_func(i, val):
     t_list, traj10, traj = val
-    t1 = t_list[i*2]
-    t2 = t_list[i*2+1]
+    t1 = jax.nn.relu(t_list[i*2])
+    t2 = jax.nn.relu(t_list[i*2+1])
 
-    traj1 = ode_solve(func, traj10, t1, arg=10)
+    traj1 = ode_solve(func, traj10, t1, arg=5)
     traj = traj.at[i,0,:,:,:].set(traj1)
     
     traj20 = traj1[-1,:,:]
-    traj2 = ode_solve(func, traj20, t2, arg=-10)
+    traj2 = ode_solve(func, traj20, t2, arg=-5)
     traj = traj.at[i,1,:,:,:].set(traj2)
     
     return t_list, traj[i,-1,-1,:,:], traj
@@ -85,19 +85,45 @@ def loss(params, x0):
     control_loss = jnp.sum(params)
     end_state_loss = tmp[-1,:]@jnp.array([[0,0,0,0],[0,0,0,0],[0,0,100,0],[0,0,0,100]])@tmp[-1,:].T
     above_0_loss = jnp.sum(jax.nn.relu(-params))
-    loss = state_loss*100 + above_0_loss*10000000+end_state_loss*100
+    loss = above_0_loss*10000000+end_state_loss*100
     return loss
 
+def res_vis(params, x0):
+    traj = system_trajectory(params, x0)
+    plt.figure()
+    for i in range(traj.shape[0]):
+        p1 = [traj[i,0,0],0]
+        p2 = [jnp.cos(traj[i,2,0]+jnp.pi/2)+p1[0], jnp.sin(traj[i,2,0]+jnp.pi/2)]
+        plt.plot([p1[0],p2[0]],[p1[1],p2[1]],'b')
+        plt.xlim([-1, 50]) 
+        plt.ylim([-1.1,1.1])   
+        plt.pause(0.001)
+        plt.clf()
+
+if __name__ == "__main__":
+#     params = jnp.array([
+#         1.0071083,  1.0010864,  0.97229886, 0.93412995, 1.1405095,  1.0574526,
+#         1.1286395,  1.1425823,  1.1528772,  1.0958037,  1.0827278,  1.0399377,
+#         0.96794087, 0.83975846, 0.8847757,  0.5441705,  1.3095053,  1.8704956,
+#         1.4023228,  0.01450855])
+    params = jnp.array([
+        1.0347966,  1.0305216,  0.99658614, 0.94158167, 1.1585217,  1.2406237,
+        1.2758323,  1.3449851,  1.4486535,  1.2309204,  0.6687606,  0.6746257,
+        0.6164314,  0.51210374, 0.6183152,  0.46059418, 0.77532303, 1.8253607,
+        1.2668735,  0.05476815
+    ])
+    x0 = jnp.array([[0],[0],[1.0],[0]])
+    res_vis(params, x0)
 
 if __name__ == "__main__": 
-    schedule = optax.linear_schedule(0.01, 0.0001, 0.0001, 2000)
+    schedule = optax.linear_schedule(0.01, 1e-5, 1e-5, 10000)
     start_learning_rate = 5.0
-    optimizer = optax.adam(0.1)
+    optimizer = optax.adam(0.01)
 
     params = jnp.array([1.0 for i in range(NUM_TRANS*2)])
     opt_state = optimizer.init(params)
 
-    x0 = jnp.array([[0],[0],[1.0],[0]])
+    x0 = jnp.array([[0],[0],[jnp.pi],[0]])
 
     best_loss = float('inf')
     final_res = None

@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.integrate as integrate 
+import matplotlib.pyplot as plt 
 from scipy.linalg import expm, solve_continuous_are
 
 DIM = 5
@@ -43,6 +44,17 @@ def func(t, args):
     xt = expm((A-B@K)*t)@x0
     res = xt.T@xt + xt.T@K.T@R@K@xt 
     return res 
+
+steps = np.linspace(0,20,1000)
+val1 = []
+val2 = []
+for step in steps:
+    val1.append(func(step, (A,B,K_ana,R)).squeeze())
+    val2.append(func(step, (A,B,K_sol,R)).squeeze())
+plt.plot(steps, val1)
+plt.plot(steps, val2)
+plt.show()
+
 
 res = integrate.quad(func, 0, 20, args = (A,B,K,R))
 print(res)

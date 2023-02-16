@@ -62,35 +62,38 @@ if __name__ == "__main__":
     best_loss = float('inf')
     final_res = None
     
-    res = loss(params, x0, t1)
-    print(res)
-    res_grad = jax.grad(loss)(params, x0, t1)
-    print(res_grad)
+    res = jax.xla_computation(loss)(params, x0, t1)
+    with open('t.dot','w+') as f:
+        f.write(res.as_hlo_dot_graph())
 
-    loss_batch = jax.vmap(loss, (None, 1, None), 1)
+    # print(res)
+    # res_grad = jax.grad(loss)(params, x0, t1)
+    # print(res_grad)
 
-    tmp_loss = jit(loss) 
-    tmp_grad = jit(jax.grad(loss))
-    tmp_loss_batch = jit(loss_batch)
-    tmp_grad_batch = jit(jax.grad(loss_batch))
-    for i in range(500):
-        val = tmp_loss(params, x0, t1)
-        print(i, val, params)
-        if val < best_loss:
-            best_loss = val 
-            final_res = copy.deepcopy(params) 
+    # loss_batch = jax.vmap(loss, (None, 1, None), 1)
+
+    # tmp_loss = jit(loss) 
+    # tmp_grad = jit(jax.grad(loss))
+    # tmp_loss_batch = jit(loss_batch)
+    # tmp_grad_batch = jit(jax.grad(loss_batch))
+    # for i in range(500):
+    #     val = tmp_loss(params, x0, t1)
+    #     print(i, val, params)
+    #     if val < best_loss:
+    #         best_loss = val 
+    #         final_res = copy.deepcopy(params) 
         
-        grads = tmp_grad(params, x0, t1)
-        updates, opt_state = optimizer.update(grads, opt_state)
-        params = optax.apply_updates(params, updates)
+    #     grads = tmp_grad(params, x0, t1)
+    #     updates, opt_state = optimizer.update(grads, opt_state)
+    #     params = optax.apply_updates(params, updates)
 
-    # theta_t1 = final_res[0]
-    # theta_t2 = final_res[1]
-    # theta_t3 = final_res[2]
-    # theta_t4 = final_res[3]
-    # theta_t5 = final_res[4]
-    # theta_t6 = final_res[5]
-    # theta_t7 = final_res[6]
-    print(final_res)
-    print(tmp_loss(final_res, x0, t1))
+    # # theta_t1 = final_res[0]
+    # # theta_t2 = final_res[1]
+    # # theta_t3 = final_res[2]
+    # # theta_t4 = final_res[3]
+    # # theta_t5 = final_res[4]
+    # # theta_t6 = final_res[5]
+    # # theta_t7 = final_res[6]
+    # print(final_res)
+    # print(tmp_loss(final_res, x0, t1))
 
