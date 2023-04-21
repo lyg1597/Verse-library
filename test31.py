@@ -11,10 +11,10 @@ import copy
 
 jax.config.update('jax_platform_name', 'cpu')
 
-NUM_TRANS = 2
+NUM_TRANS = 1
 
 # Moon lander performs one up thrust followed by one right thrust followed by one left thrust
-# N, UP, N, LEFT, N, RIGHT 
+# N, UP, N, LEFT, N, UP 
 # Perform this sequence of six modes 15 times 
 # Let's add more complicated obstacles
 # Let's use diffrax to solve this problem
@@ -46,7 +46,7 @@ def body_func(i, val):
     traj = traj.at[i,0,:,:,:].set(traj1)
     
     traj20 = traj1[-1,:,:]
-    traj20 = traj20.at[2,0].set(5.0)
+    traj20 = traj20.at[2,0].set(0.5)
     traj2 = ode_trajectory(func, traj20, t2)
     traj = traj.at[i,1,:,:,:].set(traj2)
     
@@ -56,7 +56,7 @@ def body_func(i, val):
     traj = traj.at[i,2,:,:,:].set(traj3)
     
     traj40 = traj3[-1,:,:]
-    traj40 = traj40.at[5,0].set(-5.0)
+    traj40 = traj40.at[5,0].set(-0.5)
     traj4 = ode_trajectory(func, traj40, t4)
     traj = traj.at[i,3,:,:,:].set(traj4)
 
@@ -66,7 +66,7 @@ def body_func(i, val):
     traj = traj.at[i,4,:,:,:].set(traj5)
     
     traj60 = traj5[-1,:,:]
-    traj60 = traj60.at[5,0].set(5.0)
+    traj60 = traj60.at[2,0].set(0.5)
     traj6 = ode_trajectory(func, traj60, t6)
     traj = traj.at[i,5,:,:,:].set(traj6)
 
@@ -115,32 +115,32 @@ def loss_func(params, y0, vy0, z0, vz0, y_targ, z_targ):
         jax.nn.softplus(2000-traj_y)*
         jax.nn.softplus(traj_y-1500)*
         jax.nn.softplus(850-traj_z)
-    )\
-    + jnp.sum(jax.nn.softplus(-traj_z))\
-    + jnp.sum(
-        jax.nn.softplus(traj_z-1000)
-    )\
-    + jnp.sum(
-        jax.nn.softplus(traj_y-5500)
     )
-    + jnp.sum(
-        jax.nn.softplus(4500-traj_y)*
-        jax.nn.softplus(traj_y-3500)*
-        jax.nn.softplus(700-traj_z)*
-        jax.nn.softplus(traj_z-650)
-    )\
-    + jnp.sum(
-        jax.nn.softplus(5500-traj_y)*
-        jax.nn.softplus(traj_y-4500)*
-        jax.nn.softplus(200-traj_z)*
-        jax.nn.softplus(traj_z-150)
-    )\
-    + jnp.sum(
-        jax.nn.softplus(3500-traj_y)*
-        jax.nn.softplus(traj_y-2500)*
-        jax.nn.softplus(450-traj_z)*
-        jax.nn.softplus(traj_z-400)
-    ) 
+    # + jnp.sum(jax.nn.softplus(-traj_z))\
+    # + jnp.sum(
+    #     jax.nn.softplus(traj_z-1000)
+    # )\
+    # + jnp.sum(
+    #     jax.nn.softplus(traj_y-5500)
+    # )
+    # + jnp.sum(
+    #     jax.nn.softplus(4500-traj_y)*
+    #     jax.nn.softplus(traj_y-3500)*
+    #     jax.nn.softplus(700-traj_z)*
+    #     jax.nn.softplus(traj_z-650)
+    # )\
+    # + jnp.sum(
+    #     jax.nn.softplus(5500-traj_y)*
+    #     jax.nn.softplus(traj_y-4500)*
+    #     jax.nn.softplus(200-traj_z)*
+    #     jax.nn.softplus(traj_z-150)
+    # )\
+    # + jnp.sum(
+    #     jax.nn.softplus(3500-traj_y)*
+    #     jax.nn.softplus(traj_y-2500)*
+    #     jax.nn.softplus(450-traj_z)*
+    #     jax.nn.softplus(traj_z-400)
+    # ) 
     pos_loss = (z_targ - end_z)**2 + (y_targ - end_y)**2 
     vel_loss = jax.nn.softplus(-2-end_vz)**2 + end_vy**2
     above_0_loss = jnp.sum(jax.nn.softplus(-params))
@@ -203,7 +203,7 @@ def test_res(params, y0, vy0, z0, vz0):
 if __name__ == "__main__": 
     schedule = optax.linear_schedule(1.0, 0.0001, 0.000000001, 40000)
     start_learning_rate = 5.0
-    optimizer = optax.adam(schedule)
+    optimizer = optax.adam(5.0)
 
     # Initialize parameters of the model + optimizer.
     params = jnp.array([0.01 for i in range(NUM_TRANS*6)])
@@ -226,13 +226,15 @@ if __name__ == "__main__":
 
     tmp_loss = jit(loss_func) 
     tmp_grad = jit(jax.grad(loss_func))
-    for i in range(80000):
+    for i in range(5000):
         val = tmp_loss(params, y0, vy0, z0, vz0, y_targ, z_targ)
         print(i, val)
         if val < best_loss:
             best_loss = val 
             final_res = copy.deepcopy(params) 
-        
+            res_grad = tmp_grad(params, y0, vy0, z0, vz0, y_targ, z_targ)
+            print(res_grad)
+    
         grads = tmp_grad(params, y0, vy0, z0, vz0, y_targ, z_targ)
         updates, opt_state = optimizer.update(grads, opt_state)
         params = optax.apply_updates(params, updates)
