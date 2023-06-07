@@ -11,7 +11,18 @@ from verse.parser.parser import ControllerIR
 from verse.sensor.base_sensor import BaseSensor
 from verse.map.lane_map import LaneMap
 
-@dataclass
+EGO, OTHERS = "ego", "others"
+
+
+def _check_ray_init(parallel: bool) -> None:
+    if parallel:
+        import ray
+
+        if not ray.is_initialized():
+            ray.init()
+
+
+@dataclass(frozen=True)
 class ScenarioConfig:
     """Configuration for how simulation/verification is performed for a scenario. Properties are
     immutable so that incremental verification works correctly."""
@@ -285,3 +296,157 @@ class Scenario:
         )
         self.past_runs.append(tree)
         return tree
+
+
+@dataclass
+class ExprConfig:
+    config: ScenarioConfig
+    args: str
+    rest: List[str]
+    compare: bool = False
+    plot: bool = False
+    dump: bool = False
+    sim: bool = True
+
+    @staticmethod
+    def from_arg(a: List[str], **kw) -> "ExprConfig":
+        arg = "" if len(a) < 2 else a[1]
+        sconfig = ScenarioConfig(
+            incremental="i" in arg, parallel="l" in arg, try_local="t" in arg, **kw
+        )
+        cpds = "c" in arg, "p" in arg, "d" in arg, "v" not in arg
+        for o in "cilpdv":
+            arg = arg.replace(o, "")
+        expconfig = ExprConfig(sconfig, arg, a[2:], *cpds)
+        expconfig.kw = kw
+        return expconfig
+
+    def disp(self):
+        print("args", self.args)
+        print("rest", self.rest)
+        print("compare", self.compare)
+        print("plot", self.plot)
+        print("dump", self.dump)
+        print("sim", self.sim)
+
+
+from pympler import asizeof
+import timeit
+
+
+class Benchmark:
+    agent_type: str
+    num_agent: int
+    map_name: str
+    cont_engine: str
+    noisy_s: str
+    num_nodes: int
+    run_time: float
+    cache_size: float
+    cache_hits: Tuple[int, int]
+    leaves: int
+    _start_time: float
+    parallelness: float
+    parallel_time_offset: float
+    timesteps: int
+
+    def __init__(self, argv: List[str], **kw):
+        self.config = ExprConfig.from_arg(argv, **kw)
+        # self.config.disp()
+        self.scenario = Scenario(self.config.config)
+        self.agent_type = "N/A"
+        self.noisy_s = "no"
+        self.parallelness = 0
+        self.timesteps = 0
+        self.parallel_time_offset = 0
+
+    def run(self, *a, **kw) -> AnalysisTree:
+        f = self.scenario.simulate if self.config.sim else self.scenario.verify
+        self.cont_engine = str(self.scenario.config.reachability_method)
+        if len(a) != 2:
+            print(f"\x1b[1;31mWARNING: timesteps field may not work ({a})")
+        self.timesteps = int(a[0] / a[1])
+        self._start_time = timeit.default_timer()
+        if self.config.sim:
+            self.traces = f(*a)
+        else:
+            self.traces = f(*a, **kw)
+        self.run_time = timeit.default_timer() - self._start_time
+        if self.config.sim:
+            self.cache_size = asizeof.asizeof(self.scenario.simulator.cache) / 1_000_000
+            self.cache_hits = self.scenario.simulator.cache_hits
+        else:
+            self.cache_size = (
+                asizeof.asizeof(self.scenario.verifier.cache)
+                + asizeof.asizeof(self.scenario.verifier.trans_cache)
+            ) / 1_000_000
+            self.cache_hits = (
+                self.scenario.verifier.tube_cache_hits[0]
+                + self.scenario.verifier.trans_cache_hits[0],
+                self.scenario.verifier.tube_cache_hits[1]
+                + self.scenario.verifier.trans_cache_hits[1],
+            )
+        self.num_agent = len(self.scenario.agent_dict)
+        self.map_name = self.scenario.map.__class__.__name__
+        if self.map_name == "LaneMap":
+            self.map_name = "N/A"
+        self.num_nodes = len(self.traces.nodes)
+        self.leaves = self.traces.leaves()
+        if self.config.config.parallel:
+            import ray
+
+            parallel_time = (
+                sum(ev["dur"] for ev in ray.timeline() if ev["cname"] == "generic_work") / 1_000_000
+            )
+            self.parallelness = (parallel_time - self.parallel_time_offset) / self.run_time
+            self.parallel_time_offset = parallel_time
+        return self.traces
+
+    def compare_run(self, *a, **kw):
+        assert self.config.compare
+        traces1 = self.run(*a, **kw)
+        self.report()
+        if len(self.config.rest) == 0:
+            traces2 = self.run(*a, **kw)
+        else:
+            # arg = self.config.rest[0]
+            # self.config.config = ScenarioConfig(incremental='i' in arg, parallel='l' in arg, **self.config.kw)
+            # self.scenario.update_config(self.config.config)
+            self.replace_scenario()
+            traces2 = self.run(*a, **kw)
+        self.report()
+        print("trace1 contains trace2?", traces1.contains(traces2))
+        print("trace2 contains trace1?", traces2.contains(traces1))
+        return traces1, traces2
+
+    def replace_scenario(self, new_scenario):
+        arg = self.config.rest[0]
+        self.config.config = ScenarioConfig(
+            incremental="i" in arg, parallel="l" in arg, **self.config.kw
+        )
+        # self.scenario.cleanup_cache()
+        self.scenario = new_scenario
+        self.scenario.update_config(self.config.config)
+
+    def report(self):
+        print("report:")
+        print("#agents:", self.num_agent)
+        print("agent type:", self.agent_type)
+        print("map name:", self.map_name)
+        print("postCont:", self.cont_engine)
+        print("noisy:", self.noisy_s)
+        print("#nodes:", self.num_nodes)
+        print("#leaves:", self.leaves)
+        print(f"run time: {self.run_time:.2f}s")
+        print(f"timesteps: {self.timesteps}s")
+        if self.config.config.parallel:
+            print(f"parallelness: {self.parallelness:.2f}")
+        if self.config.config.incremental:
+            print(f"cache size: {self.cache_size:.2f}MB")
+            print(f"cache hit: {(self.cache_hits[0], self.cache_hits[1])}")
+            print(
+                f"cache hit rate: {self.cache_hits[0] / (self.cache_hits[0] + self.cache_hits[1]) * 100:.2f}%"
+            )
+
+    def swap_dl(self, id: str, alt_ctlr: str):
+        self.scenario.agent_dict[id].decision_logic = ControllerIR.parse(fn=alt_ctlr)
