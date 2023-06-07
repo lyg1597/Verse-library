@@ -28,7 +28,7 @@ class State:
         self.data = []
 
 
-def controller(ego: State, other: State, lane_map: LaneMap):
+def decisionLogic(ego: State, other: State, lane_map: LaneMap):
     output = copy.deepcopy(ego)
     if ego.vehicle_mode == VehicleMode.Normal:
         if (
