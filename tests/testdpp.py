@@ -59,7 +59,7 @@ from verse.map.example_map.simple_map import SimpleMap2
 import os 
 
 class TestSimulatorMethods(unittest.TestCase):
-    def setUp(self):
+    def setUp(self):  
         self.scenario = Scenario()
         # Relative path to ../tests/example_controller1.py does not work.
         script_dir = os.path.dirname(os.path.realpath(__file__))
