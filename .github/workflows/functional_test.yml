@@ -2,7 +2,9 @@ name: Functional_test
 
 on:
   push:
-    paths: '**.py'
+    paths: 
+      - '**.py'
+      - '**.yml'
   
 jobs:
   build: 
@@ -22,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pyhton -m pip install .
+        python -m pip install .
     - name: Run test
       run: | 
         python tests/testdpp.py
