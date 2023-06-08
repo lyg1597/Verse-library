@@ -82,9 +82,11 @@ class TestSimulatorMethods(unittest.TestCase):
 
     def test_nothing(self):
         self.assertEqual(5, 5)
+        raise ValueError('aaa')
 
     def test_carid(self):
         self.assertEqual(self.car.id, "ego", msg="Checking agent creation")
+        a = 1/0
 
     def test_carinscene(self):
         # Ego agent was added
